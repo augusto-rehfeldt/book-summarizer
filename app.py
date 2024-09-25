@@ -341,7 +341,7 @@ class BookSummarizerGUI:
             self.provider_frame, textvariable=self.model_var, state="readonly"
         )
         self.model_combobox.grid(row=0, column=3, padx=5, sticky="ew")
-        self.model_combobox.bind("<<ComboboxSelected>>", self.update_estimated_time)
+        self.model_combobox.bind("<<ComboboxSelected>>", self.model_selected)
 
         ttk.Label(self.provider_frame, text="Temperature:").grid(
             row=0, column=4, padx=5, sticky="w"
@@ -363,20 +363,20 @@ class BookSummarizerGUI:
         )
         self.temperature_label.grid(row=0, column=6, padx=5, sticky="w")
 
-        self.process_cache_frame = ttk.Frame(self.master)
-        self.process_cache_frame.grid(
+        self.process_frame = ttk.Frame(self.master)
+        self.process_frame.grid(
             row=3, column=0, columnspan=3, pady=10, padx=10, sticky="ew"
         )
 
         self.process_button = ttk.Button(
-            self.process_cache_frame,
+            self.process_frame,
             text="Process Books",
             command=self.start_processing,
         )
         self.process_button.grid(row=0, column=0, padx=10, sticky="ew")
 
         self.estimated_time_frame = ttk.Frame(
-            self.process_cache_frame, width=420, height=20
+            self.process_frame, width=305, height=20
         )
         self.estimated_time_frame.grid(row=0, column=1, padx=10, sticky="ew")
 
@@ -390,6 +390,29 @@ class BookSummarizerGUI:
         self.loading_wheel = LoadingWheel(
             self.estimated_time_frame, size=20, width=2, color="#abb2bf"
         )
+        
+        ttk.Label(self.process_frame, text="Max tokens:").grid(
+            row=0, column=2, padx=5, sticky="w"
+        )
+        
+        self.max_tokens_var = tk.DoubleVar(value=32768)
+        self.tokens_slider = ttk.Scale(
+            self.process_frame,
+            from_=8192,
+            to=32768,
+            style="Horizontal.TScale",
+            orient=tk.HORIZONTAL,
+            variable=self.max_tokens_var,
+            length=200,
+        )
+        self.tokens_slider.grid(row=0, column=3, padx=5, sticky="ew")
+        
+        self.tokens_slider.bind("<ButtonRelease-1>", self.on_slider_release)
+        
+        self.tokens_label = ttk.Label(
+            self.process_frame, textvariable=self.max_tokens_var
+        )
+        self.tokens_label.grid(row=0, column=4, padx=5, sticky="w")
 
         self.progress_frame = ttk.Frame(self.master)
         self.progress_frame.grid(
@@ -449,6 +472,20 @@ class BookSummarizerGUI:
         self.file_list_frame.rowconfigure(0, weight=1)
         self.console_frame.columnconfigure(0, weight=1)
         self.console_frame.rowconfigure(0, weight=1)
+        
+    def on_slider_release(self, event):
+        # pass the slider value to the update_tokens_label function
+        self.update_tokens_label(self.tokens_slider.get())
+        
+    def model_selected(self, event):
+        # update the max tokens slider max value based on the selected model max tokens setting
+        provider_name = self.provider_var.get()
+        model_name = self.model_var.get()
+        model_info = self.get_model_info(model_name, provider_name)
+        max_tokens = model_info.get("max_tokens", 32768) # default to 32k
+        self.tokens_slider.configure(to=max_tokens)
+        self.max_tokens_var.set(max_tokens)
+        self.update_estimated_time()
 
     def open_summary_file(self, event):
         selected_item = self.file_listbox.selection()
@@ -743,6 +780,7 @@ class BookSummarizerGUI:
         selected_provider = self.provider_var.get()
         selected_model = self.model_var.get()
         temperature = self.temperature_var.get()
+        max_tokens = self.max_tokens_var.get()
 
         for provider in self.ai_config["providers"]:
             if provider["name"] == selected_provider:
@@ -752,6 +790,7 @@ class BookSummarizerGUI:
                             model
                             | {"provider": provider["name"]}
                             | {"temperature": temperature}
+                            | {"max_tokens": max_tokens}
                         )
                         return model
         return {}
@@ -767,7 +806,7 @@ class BookSummarizerGUI:
 
     def preprocess_books(self, max_tokens, tpm):
         preprocessed_books = {}
-        book_chunk_info = {}  # Store chunk sizes and summary tokens for each book
+        book_chunk_info = {}
 
         for item in self.file_listbox.get_children():
             if self.file_listbox.item(item)["values"][2] == "":
@@ -780,41 +819,30 @@ class BookSummarizerGUI:
                     # Start with initial values
                     initial_chunk_size = min(int(max_tokens * 0.8), tpm)
                     reduction_factor = 1
-                    max_allowed_tokens = int(
-                        max_tokens * 0.90
-                    )  # to account for prompt and summaries overhead
+                    max_allowed_tokens = int(max_tokens * 0.90)
 
                     for _ in range(200):
                         chunks = []
                         current_token_count = 0
                         content_words = content.split()
                         previous_summary_tokens = 0
-                        chunk_info = []  # Store the token size for each chunk
+                        chunk_info = []
 
                         while current_token_count < total_tokens:
                             chunk_size = max(
-                                int(
-                                    (initial_chunk_size * reduction_factor)
-                                    - previous_summary_tokens
-                                ),
+                                int((initial_chunk_size * reduction_factor) - previous_summary_tokens),
                                 max_tokens // 10,
                             )
 
-                            # Convert chunk size to word count using the 1.3 conversion rate
+                            # Convert chunk size to word count and ensure it's an integer
                             chunk_word_count = int(chunk_size / 1.3)
 
                             # Check if we're exceeding the max allowed tokens
-                            if (
-                                chunk_size + previous_summary_tokens
-                                > max_allowed_tokens
-                            ):
+                            if chunk_size + previous_summary_tokens > max_allowed_tokens:
                                 break
 
                             chunk_content = " ".join(
-                                content_words[
-                                    current_token_count : current_token_count
-                                    + chunk_word_count
-                                ]
+                                content_words[current_token_count : current_token_count + int(chunk_word_count)]
                             )
                             chunks.append(chunk_content)
                             chunk_info.append(
@@ -823,11 +851,10 @@ class BookSummarizerGUI:
                                     "summary_tokens": previous_summary_tokens,
                                 }
                             )
-                            current_token_count += chunk_size
+                            current_token_count += chunk_word_count
 
-                            # Estimate summary tokens for next iteration, maximum of 1000
+                            # Estimate summary tokens for next iteration
                             summary_tokens = 1000
-
                             previous_summary_tokens += summary_tokens
 
                         if current_token_count >= total_tokens or (
@@ -842,16 +869,17 @@ class BookSummarizerGUI:
                             f"Failed to preprocess {os.path.splitext(os.path.basename(book_path))[0]} ({total_tokens} tokens of length), as it's too large to process (maximum of ∼{current_token_count} tokens possible)."
                         )
                         continue
+                    else:
+                        self.console_print(
+                            f"Preprocessed {os.path.splitext(os.path.basename(book_path))[0]} ({total_tokens} tokens of length)."
+                        )
 
                     preprocessed_books[book_path] = chunks
-                    book_chunk_info[book_path] = (
-                        chunk_info  # Save chunk size and summary info
-                    )
+                    book_chunk_info[book_path] = chunk_info
 
-        self.book_chunk_info = (
-            book_chunk_info  # Store it globally for reuse in other functions
-        )
+        self.book_chunk_info = book_chunk_info
         return preprocessed_books
+
 
     def calculate_estimated_cost(self, tokens: int, model: str, provider: str) -> str:
         model_info = self.get_model_info(model, provider)
@@ -971,9 +999,7 @@ class BookSummarizerGUI:
         self.estimated_time_label.grid()
         estimated_requests = chunk_summary_info["total_chunks"] + final_summaries
         self.estimated_time_label.config(
-            text=f"Estimated requests: {estimated_requests} / {available_requests} | "
-            f"Estimated time: {total_estimated_time if estimated_requests > 0 else 'N/A'} | "
-            f"Estimated cost: {total_estimated_cost if estimated_requests > 0 else 'N/A'}"
+            text=f"Estimated requests: {estimated_requests} / {available_requests} | {total_estimated_time if estimated_requests > 0 else 'N/A'} | {total_estimated_cost if estimated_requests > 0 else 'N/A'}"
         )
 
 
@@ -1266,8 +1292,6 @@ class BookSummarizerGUI:
 
     def update_estimated_time(self, event=None):
         # don't run if treeview has no items
-        if not self.file_listbox.get_children():
-            return
         selected_model_info = self.get_selected_model_info()
         if selected_model_info:
             self.estimated_time_label.grid_forget()
@@ -1392,6 +1416,11 @@ class BookSummarizerGUI:
     def update_temperature_label(self, value):
         rounded_value = round(float(value), 2)
         self.temperature_var.set(rounded_value)
+        
+    def update_tokens_label(self, value):
+        value = int(float(value))
+        self.max_tokens_var.set(value)
+        self.update_estimated_time()
 
     def stop_processing(self):
         if self.start_processing_thread and self.start_processing_thread.is_alive():
