@@ -30,6 +30,8 @@ Using LM Studio requires an active server instance using the chosen model.
 
 API keys are hashed outside of the program and will only be used within the app execution.
 
+Some models might handle a bigger context size but I've found increasing the context too much is counterproductive, so I've limited some values. You can update this at will.
+
 AI wrote something like 70% of this release. I used GPT-4o, Claude 3.5 Sonnet, Deepseek 2.5 Coder and Qwen 2.5 72b interchangeably.
 
 I dedicated most of my time to (painful) debugging, coordinating requests, merging and improving the AI's output.

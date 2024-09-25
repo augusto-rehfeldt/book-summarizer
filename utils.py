@@ -152,17 +152,20 @@ def save_aborted_books(aborted_books: Set[str]) -> None:
 def convert_to_epub(book_file: str) -> str:
     """Convert .mobi and .azw3 files to .epub using calibre's ebook-convert."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    with tempfile.NamedTemporaryFile(
-        suffix=".epub", dir=script_dir, delete=False
-    ) as temp_file:
-        epub_file = temp_file.name
-        if not os.path.exists(os.path.join(script_dir, "converted")):
-            os.makedirs(os.path.join(script_dir, "converted"))
-        epub_file = os.path.join(script_dir, "converted", epub_file)
+    
+    # Ensure the 'converted' directory exists
+    converted_dir = os.path.join(script_dir, "converted")
+    if not os.path.exists(converted_dir):
+        os.makedirs(converted_dir)
 
+    # Create a path for the converted epub file
+    epub_file = os.path.join(converted_dir, os.path.basename(book_file).replace('.mobi', '.epub').replace('.azw3', '.epub'))
+    
+    # Run the conversion process
     subprocess.run(["ebook-convert", book_file, epub_file], check=True)
 
     return epub_file
+
 
 
 def save_chunk_summary(
