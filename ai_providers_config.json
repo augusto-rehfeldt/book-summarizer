@@ -1,0 +1,281 @@
+{
+    "providers": [
+        {
+            "name": "openai",
+            "models": [
+                {
+                    "name": "gpt-4o-mini",
+                    "max_tokens": 128000,
+                    "output_speed": 122,
+                    "latency_per_10k": 0.75,
+                    "cost_per_million": 0.26,
+                    "rpm": 500,
+                    "rpd": 10000,
+                    "tpm": 200000
+                },
+                {
+                    "name": "gpt-4o-2024-08-06",
+                    "max_tokens": 128000,
+                    "output_speed": 104,
+                    "latency_per_10k": 0.86,
+                    "cost_per_million": 4.38,
+                    "rpm": 500,
+                    "tpm": 30000
+                }
+            ]
+        },
+        {
+            "name": "openrouter",
+            "models": [
+                {
+                    "name": "qwen/qwen-2.5-72b-instruct",
+                    "max_tokens": 32768,
+                    "output_speed": 11,
+                    "latency_per_10k": 2.6,
+                    "cost_per_million": 0.36
+                },
+                {
+                    "name": "meta-llama/llama-3.1-8b-instruct:free",
+                    "max_tokens": 128000,
+                    "output_speed": 72,
+                    "latency_per_10k": 0.6,
+                    "cost_per_million": 0.06,
+                    "rpm": 20,
+                    "rpd": 200
+                }
+            ]
+        },
+        {
+            "name": "lmstudio",
+            "models": [
+                {
+                    "name": "internlm/internlm2_5-7b-chat-gguf/internlm2_5-7b-chat-q4_0.gguf",
+                    "max_tokens": 32768,
+                    "output_speed": 5,
+                    "latency_per_10k": 10,
+                    "cost_per_million": 0
+                },
+                {
+                    "name": "bartowski/Phi-3.5-mini-instruct_Uncensored-GGUF",
+                    "max_tokens": 32768,
+                    "output_speed": 12,
+                    "latency_per_10k": 10,
+                    "cost_per_million": 0
+                }
+            ]
+        },
+        {
+            "name": "hyperbolic",
+            "models": [
+                {
+                    "name": "Qwen/Qwen2.5-72B-Instruct",
+                    "max_tokens": 32768,
+                    "output_speed": 17,
+                    "latency_per_10k": 1.6,
+                    "cost_per_million": 0.4
+                },
+                {
+                    "name": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                    "max_tokens": 32768,
+                    "output_speed": 27,
+                    "latency_per_10k": 2.5,
+                    "cost_per_million": 0.4
+                }
+            ]
+        },
+        {
+            "name": "huggingface",
+            "models": [{
+                "name": "Qwen/Qwen2.5-72B-Instruct",
+                    "max_tokens": 32768,
+                    "output_speed": 11,
+                    "latency_per_10k": 2.6,
+                    "cost_per_million": 0,
+                    "rpm": 5
+            },
+            {
+                "name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+                    "max_tokens": 32768,
+                    "output_speed": 11,
+                    "latency_per_10k": 2.6,
+                    "cost_per_million": 0,
+                    "rpm": 5
+            }]
+        },
+        {
+            "name": "deepinfra",
+            "models": [
+                {
+                    "name": "Qwen/Qwen2.5-72B-Instruct",
+                    "max_tokens": 32768,
+                    "output_speed": 11,
+                    "latency_per_10k": 2.6,
+                    "cost_per_million": 0.36
+                },
+                {
+                    "name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+                    "max_tokens": 128000,
+                    "output_speed": 72,
+                    "latency_per_10k": 0.6,
+                    "cost_per_million": 0.06
+                },
+                {
+                    "name": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                    "max_tokens": 128000,
+                    "output_speed": 24,
+                    "latency_per_10k": 1.2,
+                    "cost_per_million": 0.36
+                }
+            ]
+        },
+        {
+            "name": "ollama",
+            "models": [
+                {
+                    "name": "llama3.1:8b",
+                    "max_tokens": 32768,
+                    "output_speed": 35,
+                    "latency_per_10k": 5,
+                    "cost_per_million": 0
+                },
+                {
+                    "name": "llama3.2:1b",
+                    "max_tokens": 32768,
+                    "output_speed": 100,
+                    "latency_per_10k": 2,
+                    "cost_per_million": 0
+                },
+                {
+                    "name": "llama3.2:3b",
+                    "max_tokens": 32768,
+                    "output_speed": 50,
+                    "latency_per_10k": 2.5,
+                    "cost_per_million": 0
+                },
+                {
+                    "name": "qwen2.5:7b",
+                    "max_tokens": 32768,
+                    "output_speed": 35,
+                    "latency_per_10k": 5,
+                    "cost_per_million": 0
+                },
+                {
+                    "name": "phi3.5:3.8b",
+                    "max_tokens": 32768,
+                    "output_speed": 80,
+                    "latency_per_10k": 2,
+                    "cost_per_million": 0
+                }
+            ]
+        },
+        {
+            "name": "arliai",
+            "models": [
+                {
+                    "name": "Meta-Llama-3.1-8B-Instruct",
+                    "max_tokens": 32768,
+                    "output_speed": 35,
+                    "latency_per_10k": 5,
+                    "cost_per_million": 0
+                },
+                {
+                    "name": "Mistral-Nemo-12B-Instruct-2407",
+                    "max_tokens": 32768,
+                    "output_speed": 35,
+                    "latency_per_10k": 5,
+                    "cost_per_million": 0
+                }
+            ]
+        },
+        {
+            "name": "google",
+            "models": [
+                {
+                    "name": "gemini-1.5-flash-002",
+                    "max_tokens": 128000,
+                    "output_speed": 291,
+                    "latency_per_10k": 0.67,
+                    "cost_per_million": 0,
+                    "rpm": 15,
+                    "rpd": 1500,
+                    "tpm": 1000000
+                },
+                {
+                    "name": "gemini-1.5-pro-002",
+                    "max_tokens": 128000,
+                    "output_speed": 68,
+                    "latency_per_10k": 1.26,
+                    "cost_per_million": 0,
+                    "rpm": 2,
+                    "rpd": 50,
+                    "tpm": 32000
+                }
+            ]
+        },
+        {
+            "name": "mistral",
+            "models": [
+                {
+                    "name": "mistral-small-2409",
+                    "max_tokens": 32768,
+                    "output_speed": 53,
+                    "latency_per_10k": 0.88,
+                    "cost_per_million": 0,
+                    "rpm": 60,
+                    "tpm": 500000
+                },
+                {
+                    "name": "open-mixtral-8x22b",
+                    "max_tokens": 32768,
+                    "output_speed": 60,
+                    "latency_per_10k": 0.96,
+                    "cost_per_million": 0,
+                    "rpm": 60,
+                    "tpm": 500000
+                },
+                {
+                    "name": "open-mixtral-8x7b",
+                    "max_tokens": 32768,
+                    "output_speed": 71,
+                    "latency_per_10k": 0.92,
+                    "cost_per_million": 0,
+                    "rpm": 60,
+                    "tpm": 500000
+                },
+                {
+                    "name": "open-mistral-nemo-2407",
+                    "max_tokens": 128000,
+                    "output_speed": 95,
+                    "latency_per_10k": 0.63,
+                    "cost_per_million": 0,
+                    "rpm": 60,
+                    "tpm": 500000
+                },
+                {
+                    "name": "mistral-large-2407",
+                    "max_tokens": 32768,
+                    "output_speed": 27,
+                    "latency_per_10k": 1.42,
+                    "cost_per_million": 0,
+                    "rpm": 60,
+                    "tpm": 500000
+                }
+            ]
+        },
+        {
+            "name": "anthropic",
+            "models": [
+                {
+                    "name": "claude-3-5-sonnet-20240620",
+                    "max_tokens": 200000,
+                    "output_speed": 71,
+                    "latency_per_10k": 1.67,
+                    "cost_per_million": 6,
+                    "rpm": 5,
+                    "tpm": 20000,
+                    "tpd": 200000
+                }
+            ]
+        }
+    ]
+}
