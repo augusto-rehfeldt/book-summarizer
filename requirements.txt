@@ -1,0 +1,15 @@
+anthropic>=0.34.2
+beautifulsoup4>=4.12.3
+cryptography>=43.0.1
+EbookLib>=0.18
+huggingface_hub>=0.24.6
+mistralai>=1.1.0
+ollama>=0.3.3
+openai>=1.48.0
+protobuf>=5.28.2
+PyPDF2>=3.0.1
+PyThreadKiller>=3.0.6
+PyThreadKiller>=3.0.6
+Requests>=2.32.3
+tkinterdnd2>=0.4.2
+tqdm>=4.66.5
