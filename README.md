@@ -38,7 +38,7 @@ I dedicated most of my time to (painful) debugging, coordinating requests, mergi
 
 To do:
 
-- Add a `max_tokens` scrollbar widget to allow the user to define the max tokens and indirectly, the chunk size.
+- <s>Add a `max_tokens` scrollbar widget to allow the user to define the max tokens and indirectly, the chunk size.</s>
 - Add a button to reset already processed books, to allow for reprocessing. Right now you can remove and re-add.
 - Add functionality to save processed and aborted books, and to not add them to the treeview if they were previously processed. This will be a toggle.
 - Create a command line interface and maybe a pip package if I have time.
