@@ -809,7 +809,7 @@ class BookSummarizerGUI:
         book_chunk_info = {}
 
         for item in self.file_listbox.get_children():
-            if self.file_listbox.item(item)["values"][2] == "":
+            if self.file_listbox.item(item)["values"][1] != "Aborted" and self.file_listbox.item(item)["values"][2] == "":
                 base_name = self.file_listbox.item(item)["values"][0]
                 book_path = self.file_paths.get(base_name)
                 content = read_epub(book_path)
@@ -820,6 +820,7 @@ class BookSummarizerGUI:
                     initial_chunk_size = min(int(max_tokens * 0.8), tpm)
                     reduction_factor = 1
                     max_allowed_tokens = int(max_tokens * 0.90)
+                    theoretical_max_tokens = 0
 
                     for _ in range(200):
                         chunks = []
@@ -836,6 +837,9 @@ class BookSummarizerGUI:
 
                             # Convert chunk size to word count and ensure it's an integer
                             chunk_word_count = int(chunk_size / 1.3)
+
+                            # Update theoretical maximum possible token count
+                            theoretical_max_tokens += chunk_size
 
                             # Check if we're exceeding the max allowed tokens
                             if chunk_size + previous_summary_tokens > max_allowed_tokens:
@@ -864,9 +868,10 @@ class BookSummarizerGUI:
 
                         reduction_factor -= 0.01
 
+                    # Adjust the console message to reflect theoretical max tokens, not current token count
                     if current_token_count < total_tokens:
                         self.console_print(
-                            f"Failed to preprocess {os.path.splitext(os.path.basename(book_path))[0]} ({total_tokens} tokens of length), as it's too large to process (maximum of ∼{current_token_count} tokens possible)."
+                            f"Failed to preprocess {os.path.splitext(os.path.basename(book_path))[0]} ({total_tokens} tokens of length), as it's too large to process (maximum of ∼{int(theoretical_max_tokens)} tokens possible with this model current settings)."
                         )
                         continue
                     else:
@@ -879,6 +884,7 @@ class BookSummarizerGUI:
 
         self.book_chunk_info = book_chunk_info
         return preprocessed_books
+
 
 
     def calculate_estimated_cost(self, tokens: int, model: str, provider: str) -> str:
@@ -1188,7 +1194,6 @@ class BookSummarizerGUI:
             self.console_print(f"Starting to process: {book_path}")
             item = self.get_item_from_book_path(book_path)
             self.process_single_book(book_path, manager, provider, item, chunks)
-            self.update_estimated_time()
             self.current_book += 1
             self.processing_queue.put(("update_progress", self.current_book))
 
@@ -1274,13 +1279,12 @@ class BookSummarizerGUI:
         except Exception as e:
             logging.error(f"Error processing {book_path}: {e}")
             self.aborted_books.add(book_path)
-            self.processing_queue.put(
-                ("console_print", f"Failed to process {book_path}: {str(e)}")
-            )
+            self.console_print(f"Failed to process {book_path}: {str(e)}")
             # add "Aborted" in place of the chunk progress bar
             self.processing_queue.put(("update_chunk_progress", (item, "Aborted")))
 
         finally:
+            time.sleep(0.5) # to account for queue delay
             self.update_estimated_time()
 
     def get_item_from_book_path(self, book_path):
@@ -1440,6 +1444,7 @@ class BookSummarizerGUI:
         self.model_combobox.config(state=tk.DISABLED)
         self.process_button.config(state=tk.DISABLED)
         self.temperature_slider.config(state=tk.DISABLED)
+        self.tokens_slider.config(state=tk.DISABLED)
         self.remove_selected_button.config(state=tk.DISABLED)
         self.clear_console_button.config(state=tk.DISABLED)
 
@@ -1447,6 +1452,7 @@ class BookSummarizerGUI:
         self.provider_combobox.config(state=tk.NORMAL)
         self.model_combobox.config(state=tk.NORMAL)
         self.temperature_slider.config(state=tk.NORMAL)
+        self.tokens_slider.config(state=tk.NORMAL)
         self.process_button.config(state=tk.NORMAL)
         self.remove_selected_button.config(state=tk.NORMAL)
         self.clear_console_button.config(state=tk.NORMAL)

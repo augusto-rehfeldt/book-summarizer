@@ -70,7 +70,7 @@
                 {
                     "name": "Qwen/Qwen2.5-72B-Instruct",
                     "max_tokens": 32768,
-                    "output_speed": 17,
+                    "output_speed": 40,
                     "latency_per_10k": 1.6,
                     "cost_per_million": 0.4
                 },
@@ -108,7 +108,7 @@
                 {
                     "name": "Qwen/Qwen2.5-72B-Instruct",
                     "max_tokens": 32768,
-                    "output_speed": 11,
+                    "output_speed": 14,
                     "latency_per_10k": 2.6,
                     "cost_per_million": 0.36
                 },
