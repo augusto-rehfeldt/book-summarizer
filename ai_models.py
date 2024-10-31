@@ -27,6 +27,16 @@ class BaseManager:
         self.retries = retries
         self.temperature = temperature
         self.system_message = system_message
+        self.last_request_time = 0
+        self.min_request_interval = 1.0  # seconds
+
+    def _wait_for_rate_limit(self):
+        """Ensure minimum time between API requests"""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        if time_since_last < self.min_request_interval:
+            time.sleep(self.min_request_interval - time_since_last)
+        self.last_request_time = time.time()
 
     def summarize_chunk(self, content: str, previous_summaries: str) -> str:
         prompt = f"""
@@ -106,7 +116,7 @@ class MistralManager(BaseManager):
         self.client = Mistral(api_key=api_key)
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         messages = [
             {"role": "system", "content": self.system_message},
             {"role": "user", "content": prompt},
@@ -125,7 +135,7 @@ class ArliAiManager(BaseManager):
         self.api_key = api_key
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         payload = json.dumps({
         "model": "Meta-Llama-3.1-8B-Instruct",
 
@@ -153,7 +163,7 @@ class HyperbolicManager(BaseManager):
         self.api_key = api_key
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         url = "https://api.hyperbolic.xyz/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -185,7 +195,7 @@ class OllamaManager(BaseManager):
         )
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         stream = ollama.chat(
             model=self.model,
             messages=[
@@ -220,7 +230,7 @@ class GeminiManager(BaseManager):
         genai.configure(api_key=api_key)
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         model = genai.GenerativeModel(
             self.model,
             generation_config={"temperature": self.temperature},
@@ -244,7 +254,7 @@ class OpenAIManager(BaseManager):
         self.client = OpenAI(api_key=api_key)
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         messages = [
             {"role": "system", "content": self.system_message},
             {"role": "user", "content": prompt},
@@ -262,7 +272,7 @@ class LMStudioManager(BaseManager):
         self.client = OpenAI(base_url="http://127.0.0.1:1234/v1")
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         messages = [
             {"role": "system", "content": self.system_message},
             {"role": "user", "content": prompt},
@@ -280,7 +290,7 @@ class OpenRouterManager(BaseManager):
         self.client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         messages = [
             {"role": "system", "content": self.system_message},
             {"role": "user", "content": prompt},
@@ -298,7 +308,7 @@ class HuggingFaceManager(BaseManager):
         self.client = InferenceClient(api_key=api_key)
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         messages = [
             {"role": "system", "content": self.system_message},
             {"role": "user", "content": prompt},
@@ -318,7 +328,7 @@ class DeepInfraManager(BaseManager):
         )
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         messages = [
             {"role": "system", "content": self.system_message},
             {"role": "user", "content": prompt},
@@ -337,7 +347,7 @@ class AnthropicManager(BaseManager):
         self.client = anthropic.Anthropic(api_key=api_key)
 
     def _generate_response(self, prompt: str) -> str:
-
+        self._wait_for_rate_limit()
         completion = self.client.messages.create(
             model=self.model,
             temperature=self.temperature,

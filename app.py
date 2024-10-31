@@ -820,13 +820,13 @@ class BookSummarizerGUI:
                     initial_chunk_size = min(int(max_tokens * 0.8), tpm)
                     reduction_factor = 1
                     max_allowed_tokens = int(max_tokens * 0.90)
-                    theoretical_max_tokens = 0
 
                     for _ in range(200):
                         chunks = []
                         current_token_count = 0
                         content_words = content.split()
                         previous_summary_tokens = 0
+                        theoretical_max_tokens = 0
                         chunk_info = []
 
                         while current_token_count < total_tokens:

@@ -1,5 +1,4 @@
 import os
-import tempfile
 import xml.etree.ElementTree as ET
 import subprocess
 import ebooklib
@@ -12,9 +11,6 @@ from typing import Set, Tuple, Optional
 
 from cryptography.fernet import Fernet
 from ebooklib import epub
-from bs4 import BeautifulSoup
-from tqdm import tqdm
-from typing import Set, Tuple, Optional
 
 
 def save_api_keys_to_file(keys):
