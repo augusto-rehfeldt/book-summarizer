@@ -1,13 +1,14 @@
 import os
 import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext
-from tkinterdnd2 import TkinterDnD, DND_FILES
 import json
 import logging
 import time
+import ollama
+
+from tkinter import ttk, filedialog, scrolledtext
+from tkinterdnd2 import TkinterDnD, DND_FILES
 
 from PyThreadKiller import PyThreadKiller
-import ollama
 from datetime import datetime
 from queue import Queue, Empty
 from typing import Dict, Any
@@ -1084,6 +1085,15 @@ class BookSummarizerGUI:
             self._load_model_if_needed(model)
 
             manager = OllamaManager(
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+        elif provider == "GLHF":
+            from ai_models import GLHFManager
+
+            manager = GLHFManager(
+                api_key=api_key,
                 model=model,
                 max_tokens=max_tokens,
                 temperature=temperature,

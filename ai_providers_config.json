@@ -85,22 +85,24 @@
         },
         {
             "name": "huggingface",
-            "models": [{
-                "name": "Qwen/Qwen2.5-72B-Instruct",
+            "models": [
+                {
+                    "name": "Qwen/Qwen2.5-72B-Instruct",
                     "max_tokens": 32768,
                     "output_speed": 11,
                     "latency_per_10k": 2.6,
                     "cost_per_million": 0,
                     "rpm": 5
-            },
-            {
-                "name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+                },
+                {
+                    "name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
                     "max_tokens": 32768,
                     "output_speed": 11,
                     "latency_per_10k": 2.6,
                     "cost_per_million": 0,
                     "rpm": 5
-            }]
+                }
+            ]
         },
         {
             "name": "deepinfra",
@@ -202,13 +204,25 @@
                 },
                 {
                     "name": "gemini-1.5-pro-002",
-                    "max_tokens": 256000, 
+                    "max_tokens": 256000,
                     "output_speed": 68,
                     "latency_per_10k": 1.26,
                     "cost_per_million": 0,
                     "rpm": 2,
                     "rpd": 50,
                     "tpm": 32000
+                }
+            ]
+        },
+        {
+            "name": "GLHF",
+            "models": [
+                {
+                    "name": "hf:Qwen/Qwen2.5-72B-Instruct",
+                    "max_tokens": 32768,
+                    "output_speed": 11,
+                    "latency_per_10k": 2.6,
+                    "cost_per_million": 0
                 }
             ]
         },

@@ -302,6 +302,24 @@ class OpenRouterManager(BaseManager):
         )
         return completion.choices[0].message.content
     
+class GLHFManager(BaseManager):
+    def __init__(self, api_key: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client = OpenAI(base_url="https://glhf.chat/api/openai/v1", api_key=api_key)
+
+    def _generate_response(self, prompt: str) -> str:
+        self._wait_for_rate_limit()
+        messages = [
+            {"role": "system", "content": self.system_message},
+            {"role": "user", "content": prompt},
+        ]
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=self.temperature,
+        )
+        return completion.choices[0].message.content
+    
 class HuggingFaceManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
