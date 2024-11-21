@@ -28,7 +28,6 @@ from utils import (
 )
 
 
-
 class LoadingWheel(tk.Canvas):
     def __init__(self, master, size=20, width=2, color="#4c525e"):
         try:
@@ -809,84 +808,108 @@ class BookSummarizerGUI:
         preprocessed_books = {}
         book_chunk_info = {}
 
+        # Load existing processed books cache if it exists
+        processed_books_cache = {}
+        cache_file = 'processed_books_cache.json'
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r') as f:
+                processed_books_cache = json.load(f)
+
         for item in self.file_listbox.get_children():
             if self.file_listbox.item(item)["values"][1] != "Aborted" and self.file_listbox.item(item)["values"][2] == "":
                 base_name = self.file_listbox.item(item)["values"][0]
                 book_path = self.file_paths.get(base_name)
-                content = read_epub(book_path)
-                if content:
-                    total_tokens = int(len(content.split()) * 1.3)
+                
+                # Calculate content hash to detect changes
+                with open(book_path, 'rb') as f:
+                    import hashlib
+                    content_hash = hashlib.md5(f.read()).hexdigest()
+                
+                # Check if book needs preprocessing
+                if book_path not in processed_books_cache or processed_books_cache.get(book_path) != content_hash:
+                    content = read_epub(book_path)
+                    if content:
+                        total_tokens = int(len(content.split()) * 1.3)
 
-                    # Start with initial values
-                    initial_chunk_size = min(int(max_tokens * 0.8), tpm)
-                    reduction_factor = 1
-                    max_allowed_tokens = int(max_tokens * 0.90)
+                        # Start with initial values
+                        initial_chunk_size = min(int(max_tokens * 0.8), tpm)
+                        reduction_factor = 1
+                        max_allowed_tokens = int(max_tokens * 0.90)
 
-                    for _ in range(200):
-                        chunks = []
-                        current_token_count = 0
-                        content_words = content.split()
-                        previous_summary_tokens = 0
-                        theoretical_max_tokens = 0
-                        chunk_info = []
+                        for _ in range(200):
+                            chunks = []
+                            current_token_count = 0
+                            content_words = content.split()
+                            previous_summary_tokens = 0
+                            theoretical_max_tokens = 0
+                            chunk_info = []
 
-                        while current_token_count < total_tokens:
-                            chunk_size = max(
-                                int((initial_chunk_size * reduction_factor) - previous_summary_tokens),
-                                max_tokens // 10,
-                            )
+                            while current_token_count < total_tokens:
+                                chunk_size = max(
+                                    int((initial_chunk_size * reduction_factor) - previous_summary_tokens),
+                                    max_tokens // 10,
+                                )
 
-                            # Convert chunk size to word count and ensure it's an integer
-                            chunk_word_count = int(chunk_size / 1.3)
+                                # Convert chunk size to word count and ensure it's an integer
+                                chunk_word_count = int(chunk_size / 1.3)
 
-                            # Update theoretical maximum possible token count
-                            theoretical_max_tokens += chunk_size
+                                # Update theoretical maximum possible token count
+                                theoretical_max_tokens += chunk_size
 
-                            # Check if we're exceeding the max allowed tokens
-                            if chunk_size + previous_summary_tokens > max_allowed_tokens:
+                                # Check if we're exceeding the max allowed tokens
+                                if chunk_size + previous_summary_tokens > max_allowed_tokens:
+                                    break
+
+                                chunk_content = " ".join(
+                                    content_words[current_token_count : current_token_count + int(chunk_word_count)]
+                                )
+                                chunks.append(chunk_content)
+                                chunk_info.append(
+                                    {
+                                        "chunk_size": chunk_size,
+                                        "summary_tokens": previous_summary_tokens,
+                                    }
+                                )
+                                current_token_count += chunk_word_count
+
+                                # Estimate summary tokens for next iteration
+                                summary_tokens = 1000
+                                previous_summary_tokens += summary_tokens
+
+                            if current_token_count >= total_tokens or (
+                                chunk_size + previous_summary_tokens <= max_allowed_tokens
+                            ):
                                 break
 
-                            chunk_content = " ".join(
-                                content_words[current_token_count : current_token_count + int(chunk_word_count)]
+                            reduction_factor -= 0.01
+
+                        # Adjust the console message to reflect theoretical max tokens, not current token count
+                        if current_token_count < total_tokens:
+                            self.console_print(
+                                f"Failed to preprocess {os.path.splitext(os.path.basename(book_path))[0]} ({total_tokens} tokens of length), as it's too large to process (maximum of ∼{int(theoretical_max_tokens)} tokens possible with this model current settings)."
                             )
-                            chunks.append(chunk_content)
-                            chunk_info.append(
-                                {
-                                    "chunk_size": chunk_size,
-                                    "summary_tokens": previous_summary_tokens,
-                                }
+                            continue
+                        else:
+                            self.console_print(
+                                f"Preprocessed {os.path.splitext(os.path.basename(book_path))[0]} ({total_tokens} tokens of length)."
                             )
-                            current_token_count += chunk_word_count
 
-                            # Estimate summary tokens for next iteration
-                            summary_tokens = 1000
-                            previous_summary_tokens += summary_tokens
+                        preprocessed_books[book_path] = chunks
+                        book_chunk_info[book_path] = chunk_info
+                        
+                        # Update processed books cache
+                        processed_books_cache[book_path] = content_hash
+                else:
+                    # Book is already processed and hasn't changed
+                    self.console_print(f"Skipping preprocessing for {os.path.splitext(os.path.basename(book_path))[0]} (no changes detected).")
+                    preprocessed_books[book_path] = processed_books_cache.get(book_path, [])
 
-                        if current_token_count >= total_tokens or (
-                            chunk_size + previous_summary_tokens <= max_allowed_tokens
-                        ):
-                            break
-
-                        reduction_factor -= 0.01
-
-                    # Adjust the console message to reflect theoretical max tokens, not current token count
-                    if current_token_count < total_tokens:
-                        self.console_print(
-                            f"Failed to preprocess {os.path.splitext(os.path.basename(book_path))[0]} ({total_tokens} tokens of length), as it's too large to process (maximum of ∼{int(theoretical_max_tokens)} tokens possible with this model current settings)."
-                        )
-                        continue
-                    else:
-                        self.console_print(
-                            f"Preprocessed {os.path.splitext(os.path.basename(book_path))[0]} ({total_tokens} tokens of length)."
-                        )
-
-                    preprocessed_books[book_path] = chunks
-                    book_chunk_info[book_path] = chunk_info
+        # Save updated processed books cache
+        with open(cache_file, 'w') as f:
+            json.dump(processed_books_cache, f)
 
         self.book_chunk_info = book_chunk_info
         return preprocessed_books
-
-
 
     def calculate_estimated_cost(self, tokens: int, model: str, provider: str) -> str:
         model_info = self.get_model_info(model, provider)
