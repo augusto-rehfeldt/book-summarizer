@@ -7,6 +7,10 @@ import getpass
 import ollama
 import anthropic
 import google.generativeai as genai
+
+import dashscope
+from http import HTTPStatus
+
 from huggingface_hub import InferenceClient
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from openai import OpenAI
@@ -306,6 +310,24 @@ class GLHFManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.client = OpenAI(base_url="https://glhf.chat/api/openai/v1", api_key=api_key)
+
+    def _generate_response(self, prompt: str) -> str:
+        self._wait_for_rate_limit()
+        messages = [
+            {"role": "system", "content": self.system_message},
+            {"role": "user", "content": prompt},
+        ]
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=self.temperature,
+        )
+        return completion.choices[0].message.content
+    
+class AlibabaManager(BaseManager):
+    def __init__(self, api_key: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client = OpenAI(base_url="https://dashscope.aliyuncs.com/compatible-mode/v1", api_key=api_key)
 
     def _generate_response(self, prompt: str) -> str:
         self._wait_for_rate_limit()

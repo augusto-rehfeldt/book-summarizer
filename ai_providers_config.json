@@ -190,6 +190,18 @@
             ]
         },
         {
+            "name": "alibaba",
+            "models": [
+                {
+                    "name": "qwen-turbo-latest",
+                    "max_tokens": 128000,
+                    "output_speed": 100,
+                    "latency_per_10k": 1,
+                    "cost_per_million": 0.05
+                }
+            ]
+        },
+        {
             "name": "google",
             "models": [
                 {
