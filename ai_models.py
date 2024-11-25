@@ -8,9 +8,6 @@ import ollama
 import anthropic
 import google.generativeai as genai
 
-import dashscope
-from http import HTTPStatus
-
 from huggingface_hub import InferenceClient
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from openai import OpenAI
@@ -114,6 +111,55 @@ class BaseManager:
                 return response
 
 
+class OpenAIBaseManager(BaseManager):
+    def __init__(self, api_key: str, base_url: str = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
+
+    def _generate_response(self, prompt: str) -> str:
+        self._wait_for_rate_limit()
+        messages = [
+            {"role": "system", "content": self.system_message},
+            {"role": "user", "content": prompt},
+        ]
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=self.temperature,
+        )
+        return completion.choices[0].message.content
+
+
+class OpenAIManager(OpenAIBaseManager):
+    def __init__(self, api_key: str, *args, **kwargs):
+        super().__init__(api_key=api_key, *args, **kwargs)
+
+
+class LMStudioManager(OpenAIBaseManager):
+    def __init__(self, *args, **kwargs):
+        super().__init__(api_key="", base_url="http://127.0.0.1:1234/v1", *args, **kwargs)
+
+
+class OpenRouterManager(OpenAIBaseManager):
+    def __init__(self, api_key: str, *args, **kwargs):
+        super().__init__(api_key=api_key, base_url="https://openrouter.ai/api/v1", *args, **kwargs)
+
+
+class GLHFManager(OpenAIBaseManager):
+    def __init__(self, api_key: str, *args, **kwargs):
+        super().__init__(api_key=api_key, base_url="https://glhf.chat/api/openai/v1", *args, **kwargs)
+
+
+class AlibabaManager(OpenAIBaseManager):
+    def __init__(self, api_key: str, *args, **kwargs):
+        super().__init__(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1", *args, **kwargs)
+
+
+class DeepInfraManager(OpenAIBaseManager):
+    def __init__(self, api_key: str, *args, **kwargs):
+        super().__init__(api_key=api_key, base_url="https://api.deepinfra.com/v1/openai", *args, **kwargs)
+
+
 class MistralManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -141,49 +187,23 @@ class ArliAiManager(BaseManager):
     def _generate_response(self, prompt: str) -> str:
         self._wait_for_rate_limit()
         payload = json.dumps({
-        "model": "Meta-Llama-3.1-8B-Instruct",
-
-        "messages": [
-            {"role": "system", "content": self.system_message},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": self.temperature,
-        "max_tokens": self.max_tokens,
-        "stream": False
+            "model": "Meta-Llama-3.1-8B-Instruct",
+            "messages": [
+                {"role": "system", "content": self.system_message},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": False
         })
         
         headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f"Bearer {self.api_key}"
+            'Content-Type': 'application/json',
+            'Authorization': f"Bearer {self.api_key}"
         }
 
         response = requests.request("POST", "https://api.arliai.com/v1/chat/completions", headers=headers, data=payload)
         
-        return response.json()["choices"][0]["message"]["content"]
-
-class HyperbolicManager(BaseManager):
-    def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.api_key = api_key
-
-    def _generate_response(self, prompt: str) -> str:
-        self._wait_for_rate_limit()
-        url = "https://api.hyperbolic.xyz/v1/chat/completions"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-        }
-        data = {
-            "messages": [
-                {"role": "system", "content": self.system_message},
-                {"role": "user", "content": prompt},
-            ],
-            "model": self.model,
-            "temperature": self.temperature,
-        }
-
-        response = requests.post(url, headers=headers, json=data)
-
         return response.json()["choices"][0]["message"]["content"]
 
 
@@ -211,8 +231,7 @@ class OllamaManager(BaseManager):
         )
 
         response = ""
-
-        latest_50 = "" # track the latest 50 characters to check for repeats
+        latest_50 = ""  # track the latest 50 characters to check for repeats
 
         for i, chunk in enumerate(stream):
             response += chunk["message"]["content"]
@@ -252,120 +271,10 @@ class GeminiManager(BaseManager):
         return response.text
 
 
-class OpenAIManager(BaseManager):
-    def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.client = OpenAI(api_key=api_key)
-
-    def _generate_response(self, prompt: str) -> str:
-        self._wait_for_rate_limit()
-        messages = [
-            {"role": "system", "content": self.system_message},
-            {"role": "user", "content": prompt},
-        ]
-        completion = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=self.temperature,
-        )
-        return completion.choices[0].message.content
-    
-class LMStudioManager(BaseManager):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.client = OpenAI(base_url="http://127.0.0.1:1234/v1")
-
-    def _generate_response(self, prompt: str) -> str:
-        self._wait_for_rate_limit()
-        messages = [
-            {"role": "system", "content": self.system_message},
-            {"role": "user", "content": prompt},
-        ]
-        completion = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=self.temperature,
-        )
-        return completion.choices[0].message.content
-    
-class OpenRouterManager(BaseManager):
-    def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
-
-    def _generate_response(self, prompt: str) -> str:
-        self._wait_for_rate_limit()
-        messages = [
-            {"role": "system", "content": self.system_message},
-            {"role": "user", "content": prompt},
-        ]
-        completion = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=self.temperature,
-        )
-        return completion.choices[0].message.content
-    
-class GLHFManager(BaseManager):
-    def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.client = OpenAI(base_url="https://glhf.chat/api/openai/v1", api_key=api_key)
-
-    def _generate_response(self, prompt: str) -> str:
-        self._wait_for_rate_limit()
-        messages = [
-            {"role": "system", "content": self.system_message},
-            {"role": "user", "content": prompt},
-        ]
-        completion = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=self.temperature,
-        )
-        return completion.choices[0].message.content
-    
-class AlibabaManager(BaseManager):
-    def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.client = OpenAI(base_url="https://dashscope.aliyuncs.com/compatible-mode/v1", api_key=api_key)
-
-    def _generate_response(self, prompt: str) -> str:
-        self._wait_for_rate_limit()
-        messages = [
-            {"role": "system", "content": self.system_message},
-            {"role": "user", "content": prompt},
-        ]
-        completion = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=self.temperature,
-        )
-        return completion.choices[0].message.content
-    
 class HuggingFaceManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.client = InferenceClient(api_key=api_key)
-
-    def _generate_response(self, prompt: str) -> str:
-        self._wait_for_rate_limit()
-        messages = [
-            {"role": "system", "content": self.system_message},
-            {"role": "user", "content": prompt},
-        ]
-        completion = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=self.temperature,
-        )
-        return completion.choices[0].message.content
-
-class DeepInfraManager(BaseManager):
-    def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.client = OpenAI(
-            base_url="https://api.deepinfra.com/v1/openai", api_key=api_key
-        )
 
     def _generate_response(self, prompt: str) -> str:
         self._wait_for_rate_limit()
@@ -394,5 +303,4 @@ class AnthropicManager(BaseManager):
             system=self.system_message,
             messages=[{"role": "user", "content": prompt}],
         )
-
         return completion.content
