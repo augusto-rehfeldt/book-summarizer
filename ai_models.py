@@ -6,10 +6,10 @@ import time
 import getpass
 import ollama
 import anthropic
-import google.generativeai as genai
 
+from google import genai
+from google.genai import types
 from huggingface_hub import InferenceClient
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from openai import OpenAI
 from mistralai import Mistral
 
@@ -249,24 +249,42 @@ class OllamaManager(BaseManager):
 class GeminiManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.api_key = api_key
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
+        
 
     def _generate_response(self, prompt: str) -> str:
         self._wait_for_rate_limit()
-        model = genai.GenerativeModel(
-            self.model,
-            generation_config={"temperature": self.temperature},
-            system_instruction=self.system_message,
-        )
-        response = model.generate_content(
-            prompt,
-            safety_settings={
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-            },
+
+        safety_settings = [
+            types.SafetySetting(
+                category="HARM_CATEGORY_HATE_SPEECH",
+                threshold="BLOCK_NONE",
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_HARASSMENT",
+                threshold="BLOCK_NONE",
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold="BLOCK_NONE",
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold="BLOCK_NONE",
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_CIVIC_INTEGRITY",
+                threshold="BLOCK_NONE",
+            ),
+        ]
+
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=self.temperature,
+                safety_settings=safety_settings,
+            ),
         )
         return response.text
 

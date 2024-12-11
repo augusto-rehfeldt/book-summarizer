@@ -75,8 +75,8 @@
                     "cost_per_million": 0.4
                 },
                 {
-                    "name": "meta-llama/Meta-Llama-3.1-70B-Instruct",
-                    "max_tokens": 32768,
+                    "name": "meta-llama/Llama-3.3-70B-Instruct",
+                    "max_tokens": 128000,
                     "output_speed": 27,
                     "latency_per_10k": 2.5,
                     "cost_per_million": 0.4
@@ -122,11 +122,18 @@
                     "cost_per_million": 0.06
                 },
                 {
-                    "name": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                    "name": "meta-llama/Llama-3.3-70B-Instruct",
                     "max_tokens": 128000,
                     "output_speed": 24,
                     "latency_per_10k": 1.2,
-                    "cost_per_million": 0.36
+                    "cost_per_million": 0.3
+                },
+                {
+                    "name": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+                    "max_tokens": 128000,
+                    "output_speed": 24,
+                    "latency_per_10k": 1.2,
+                    "cost_per_million": 0.2
                 }
             ]
         },
@@ -205,7 +212,7 @@
             "name": "google",
             "models": [
                 {
-                    "name": "gemini-1.5-flash-002",
+                    "name": "gemini-2.0-flash-exp",
                     "max_tokens": 128000,
                     "output_speed": 291,
                     "latency_per_10k": 0.67,
@@ -213,16 +220,6 @@
                     "rpm": 15,
                     "rpd": 1500,
                     "tpm": 1000000
-                },
-                {
-                    "name": "gemini-1.5-pro-002",
-                    "max_tokens": 256000,
-                    "output_speed": 68,
-                    "latency_per_10k": 1.26,
-                    "cost_per_million": 0,
-                    "rpm": 2,
-                    "rpd": 50,
-                    "tpm": 32000
                 }
             ]
         },
