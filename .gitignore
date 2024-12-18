@@ -170,4 +170,5 @@ api_keys.json
 conversion_cache.json
 daily_requests.json
 encryption_key.key
-
+har_and_cookies
+.vscode

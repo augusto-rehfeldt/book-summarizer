@@ -1075,7 +1075,7 @@ class BookSummarizerGUI:
         provider = selected_model_info["provider"]
         temperature = selected_model_info["temperature"]
 
-        if provider not in ["ollama", "lmstudio"]:
+        if provider not in ["ollama", "lmstudio", "g4f"]:
             if not self.encrypted_api_keys.get(provider):
                 self.console_print(
                     f"Error: No API key found for {provider}. Aborting..."
@@ -1090,6 +1090,14 @@ class BookSummarizerGUI:
             self._load_model_if_needed(model)
 
             manager = OllamaManager(
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+        elif provider == "g4f":
+            from ai_models import G4FManager
+
+            manager = G4FManager(
                 model=model,
                 max_tokens=max_tokens,
                 temperature=temperature,

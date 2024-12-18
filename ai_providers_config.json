@@ -209,6 +209,25 @@
             ]
         },
         {
+            "name": "g4f",
+            "models": [
+                {
+                    "name": "gpt-4o",
+                    "max_tokens": 128000,
+                    "output_speed": 30,
+                    "latency_per_10k": 2,
+                    "cost_per_million": 0
+                },
+                {
+                    "name": "gpt-4o-mini",
+                    "max_tokens": 128000,
+                    "output_speed": 50,
+                    "latency_per_10k": 1,
+                    "cost_per_million": 0
+                }
+            ]
+        },
+        {
             "name": "google",
             "models": [
                 {
@@ -217,9 +236,9 @@
                     "output_speed": 291,
                     "latency_per_10k": 0.67,
                     "cost_per_million": 0,
-                    "rpm": 15,
+                    "rpm": 10,
                     "rpd": 1500,
-                    "tpm": 1000000
+                    "tpm": 4000000
                 }
             ]
         },

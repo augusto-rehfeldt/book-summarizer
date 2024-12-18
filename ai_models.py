@@ -6,7 +6,9 @@ import time
 import getpass
 import ollama
 import anthropic
+import g4f
 
+from g4f.client import Client
 from google import genai
 from google.genai import types
 from huggingface_hub import InferenceClient
@@ -110,6 +112,42 @@ class BaseManager:
                     continue
                 return response
 
+class G4FManager(BaseManager):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client = Client()
+        self.min_request_interval = 2.0  # Increased delay for G4F rate limiting
+
+    def _generate_response(self, prompt: str) -> str:
+        self._wait_for_rate_limit()
+        
+        messages = [
+            {"role": "system", "content": self.system_message},
+            {"role": "user", "content": prompt}
+        ]
+        
+        for attempt in range(self.retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens
+                )
+                
+                if not response.choices or not response.choices[0].message.content:
+                    raise ValueError(f"Unexpected response format: {response}")
+                
+                return response.choices[0].message.content
+
+            except Exception as e:
+                logging.error(f"G4F API request failed (attempt {attempt + 1}/{self.retries}): {e}")
+                if attempt < self.retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                continue
+                
+        logging.error("Failed to get valid response from G4F after all retries")
+        return ""
 
 class OpenAIBaseManager(BaseManager):
     def __init__(self, api_key: str, base_url: str = None, *args, **kwargs):
@@ -187,7 +225,7 @@ class ArliAiManager(BaseManager):
     def _generate_response(self, prompt: str) -> str:
         self._wait_for_rate_limit()
         payload = json.dumps({
-            "model": "Meta-Llama-3.1-8B-Instruct",
+            "model": self.model,
             "messages": [
                 {"role": "system", "content": self.system_message},
                 {"role": "user", "content": prompt}

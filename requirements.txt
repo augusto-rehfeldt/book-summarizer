@@ -14,3 +14,4 @@ Requests>=2.32.3
 tkinterdnd2>=0.4.2
 tqdm>=4.66.5
 google-genai>=0.1.0
+g4f>=0.3.9.6
