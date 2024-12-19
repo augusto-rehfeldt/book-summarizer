@@ -224,6 +224,13 @@
                     "output_speed": 50,
                     "latency_per_10k": 1,
                     "cost_per_million": 0
+                },
+                {
+                    "name": "claude-3.5-sonnet",
+                    "max_tokens": 200000,
+                    "output_speed": 20,
+                    "latency_per_10k": 2,
+                    "cost_per_million": 0
                 }
             ]
         },
@@ -239,6 +246,26 @@
                     "rpm": 10,
                     "rpd": 1500,
                     "tpm": 4000000
+                },
+                {
+                    "name": "gemini-2.0-flash-thinking-exp-1219",
+                    "max_tokens": 32768,
+                    "output_speed": 200,
+                    "latency_per_10k": 0.67,
+                    "cost_per_million": 0,
+                    "rpm": 10,
+                    "rpd": 1500,
+                    "tpm": 4000000
+                },
+                {
+                    "name": "gemini-exp-1206",
+                    "max_tokens": 32768,
+                    "output_speed": 100,
+                    "latency_per_10k": 2,
+                    "cost_per_million": 0,
+                    "rpm": 2,
+                    "rpd": 50,
+                    "tpm": 32768
                 }
             ]
         },
