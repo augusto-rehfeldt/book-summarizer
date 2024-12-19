@@ -797,7 +797,7 @@ class BookSummarizerGUI:
 
     def _load_model_if_needed(self, model):
         """Load the model if it is not already present locally."""
-        if model not in [x["name"] for x in ollama.list()["models"]]:
+        if model not in [x["model"] for x in ollama.list()["models"]]:
             self.console_print(
                 f"{model} not found locally. Pulling from Hugging Face... Please wait some minutes..."
             )
