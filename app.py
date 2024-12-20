@@ -79,7 +79,6 @@ class BookSummarizerGUI:
         self.master.geometry("800x650")
         self.daily_requests = load_daily_requests()
         self.load_ai_config()
-        self.encrypted_api_keys = {}
         self.load_api_keys()
 
         self.master.configure(background="#282c34")

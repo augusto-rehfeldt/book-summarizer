@@ -15,7 +15,6 @@ from huggingface_hub import InferenceClient
 from openai import OpenAI
 from mistralai import Mistral
 
-
 class BaseManager:
     def __init__(
         self,
@@ -167,36 +166,29 @@ class OpenAIBaseManager(BaseManager):
         )
         return completion.choices[0].message.content
 
-
 class OpenAIManager(OpenAIBaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(api_key=api_key, *args, **kwargs)
-
 
 class LMStudioManager(OpenAIBaseManager):
     def __init__(self, *args, **kwargs):
         super().__init__(api_key="", base_url="http://127.0.0.1:1234/v1", *args, **kwargs)
 
-
 class OpenRouterManager(OpenAIBaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(api_key=api_key, base_url="https://openrouter.ai/api/v1", *args, **kwargs)
-
 
 class GLHFManager(OpenAIBaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(api_key=api_key, base_url="https://glhf.chat/api/openai/v1", *args, **kwargs)
 
-
 class AlibabaManager(OpenAIBaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1", *args, **kwargs)
 
-
 class DeepInfraManager(OpenAIBaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(api_key=api_key, base_url="https://api.deepinfra.com/v1/openai", *args, **kwargs)
-
 
 class MistralManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
@@ -215,7 +207,6 @@ class MistralManager(BaseManager):
             messages=messages,
         )
         return completion.choices[0].message.content
-
 
 class ArliAiManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
@@ -243,7 +234,6 @@ class ArliAiManager(BaseManager):
         response = requests.request("POST", "https://api.arliai.com/v1/chat/completions", headers=headers, data=payload)
         
         return response.json()["choices"][0]["message"]["content"]
-
 
 class OllamaManager(BaseManager):
     def __init__(self, *args, **kwargs):
@@ -282,7 +272,6 @@ class OllamaManager(BaseManager):
                     return response
 
         return response
-
 
 class GeminiManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
@@ -326,7 +315,6 @@ class GeminiManager(BaseManager):
         )
         return response.text
 
-
 class HuggingFaceManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -345,7 +333,6 @@ class HuggingFaceManager(BaseManager):
         )
         return completion.choices[0].message.content
 
-
 class AnthropicManager(BaseManager):
     def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -360,3 +347,29 @@ class AnthropicManager(BaseManager):
             messages=[{"role": "user", "content": prompt}],
         )
         return completion.content
+
+class HyperbolicManager(BaseManager):
+    def __init__(self, api_key: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.api_key = api_key
+
+    def _generate_response(self, prompt: str) -> str:
+        self._wait_for_rate_limit()
+        url = "https://api.hyperbolic.xyz/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+        data = {
+            "messages": [
+                {"role": "system", "content": self.system_message},
+                {"role": "user", "content": prompt},
+            ],
+            "model": self.model,
+            "max_tokens": 1000,
+            "temperature": self.temperature,
+            "top_p": 0.9,
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        return response.json()["choices"][0]["message"]["content"]
