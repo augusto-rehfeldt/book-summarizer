@@ -178,7 +178,6 @@ def save_chunk_summary(
         f.write(f"Chunk: {chunk_number}\n\n")
         f.write(summary)
 
-
 def find_ocr_files(file_path):
     "from a book file path, search its parent directory to find the ocr file for that book"
     parent_dir = os.path.dirname(file_path)

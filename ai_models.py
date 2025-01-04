@@ -6,7 +6,6 @@ import time
 import getpass
 import ollama
 import anthropic
-import g4f
 
 from g4f.client import Client
 from google import genai
@@ -110,6 +109,36 @@ class BaseManager:
                     )
                     continue
                 return response
+            
+    def generate_tags(self, final_summary: str) -> list:
+        """
+        Generate 20 tags based on the final summary of the book.
+        """
+        prompt = f"""
+        Based on the following book summary, generate 20 relevant tags that capture the key themes of the book:
+
+        {final_summary}
+
+        The tags should be concise, relevant, and cover a broad range of aspects from the book.
+        Provide the tags as a comma-separated list.
+        """
+        
+        for attempt in range(self.retries):
+            try:
+                response = self._generate_response(prompt)
+                tags = [tag.strip() for tag in response.split(",")]
+                if len(tags) == 20:
+                    return tags
+                else:
+                    logging.error(f"Generated {len(tags)} tags instead of 20. Retrying...")
+            except Exception as e:
+                logging.error(f"Error during tag generation (attempt {attempt + 1}): {e}")
+                if attempt < self.retries - 1:
+                    time.sleep(2**attempt)  # Exponential backoff
+                else:
+                    logging.warning("Max retries reached. Skipping tag generation.")
+                    return []
+        return []
 
 class G4FManager(BaseManager):
     def __init__(self, *args, **kwargs):

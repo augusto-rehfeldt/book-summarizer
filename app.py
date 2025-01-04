@@ -76,7 +76,7 @@ class BookSummarizerGUI:
     def __init__(self, master):
         self.master = master
         self.master.title("Book Summarizer")
-        self.master.geometry("800x650")
+        self.master.geometry("880x650")
         self.daily_requests = load_daily_requests()
         self.load_ai_config()
         self.load_api_keys()
@@ -227,24 +227,32 @@ class BookSummarizerGUI:
         ttk.Button(
             self.select_frame, text="Select Folder", command=self.select_folder
         ).grid(row=0, column=1, padx=5, sticky="ew")
+        
+        self.reprocess_selected_button = ttk.Button(
+            self.select_frame,
+            text="Reprocess Selected",
+            command=self.reprocess_selected_files,
+        )
+        self.reprocess_selected_button.grid(row=0, column=2, padx=5, sticky="ew")  # Adjust column index as needed
+        
         self.remove_selected_button = ttk.Button(
             self.select_frame,
             text="Remove Selected",
             command=self.remove_selected_files,
         )
-        self.remove_selected_button.grid(row=0, column=2, padx=5, sticky="ew")
+        self.remove_selected_button.grid(row=0, column=3, padx=5, sticky="ew")
         self.clear_list_button = ttk.Button(
             self.select_frame, text="Clear List", command=self.clear_file_list
         )
-        self.clear_list_button.grid(row=0, column=3, padx=5, sticky="ew")
+        self.clear_list_button.grid(row=0, column=4, padx=5, sticky="ew")
 
         self.book_count_label = ttk.Label(self.select_frame, text="Books Added: 0")
-        self.book_count_label.grid(row=0, column=4, padx=5, sticky="e")
+        self.book_count_label.grid(row=0, column=5, padx=5, sticky="e")
 
         self.api_keys_button = ttk.Button(
             self.select_frame, text="Manage API Keys", command=self.manage_api_keys
         )
-        self.api_keys_button.grid(row=0, column=5, padx=5, sticky="e")
+        self.api_keys_button.grid(row=0, column=6, padx=5, sticky="e")
 
         self.file_list_frame = ttk.Frame(self.master)
         self.file_list_frame.grid(
@@ -422,7 +430,7 @@ class BookSummarizerGUI:
             row=0, column=0, padx=5, sticky="w"
         )
         self.overall_progress_bar = ttk.Progressbar(
-            self.progress_frame, orient=tk.HORIZONTAL, length=200, mode="determinate"
+            self.progress_frame, orient=tk.HORIZONTAL, length=240, mode="determinate"
         )
         self.overall_progress_bar.grid(row=0, column=1, sticky="ew")
         self.progress_percentage_label = ttk.Label(self.progress_frame, text="0%")
@@ -463,6 +471,14 @@ class BookSummarizerGUI:
             fg="#abb2bf",
         )
         self.console.grid(row=0, column=0, sticky="nsew")
+        
+        self.generate_tags_var = tk.BooleanVar(value=True)  # Default to True
+        self.generate_tags_checkbox = ttk.Checkbutton(
+            self.provider_frame,
+            text="Generate Tags",
+            variable=self.generate_tags_var,
+        )
+        self.generate_tags_checkbox.grid(row=0, column=7, padx=5, sticky="w")
 
         self.master.columnconfigure(0, weight=1)
         self.master.rowconfigure(1, weight=1, minsize=300)
@@ -475,6 +491,32 @@ class BookSummarizerGUI:
     def on_slider_release(self, event):
         # pass the slider value to the update_tokens_label function
         self.update_tokens_label(self.tokens_slider.get())
+        
+    def reprocess_selected_files(self):
+        selected_items = self.file_listbox.selection()
+        if not selected_items:
+            self.console_print("No books selected for reprocessing.")
+            return
+
+        for item in selected_items:
+            # Reset the progress and processing time for the selected item
+            self.file_listbox.set(item, "chunk_progress", "")
+            self.file_listbox.set(item, "processing_time", "")
+
+            # Remove the book from the processed and aborted sets
+            base_name = self.file_listbox.item(item)["values"][0]
+            book_path = self.file_paths.get(base_name)
+            if book_path in self.processed_books:
+                self.processed_books.remove(book_path)
+            if book_path in self.aborted_books:
+                self.aborted_books.remove(book_path)
+
+            # Remove the book from the processed_basenames dictionary
+            if base_name in self.processed_basenames:
+                del self.processed_basenames[base_name]
+
+        self.console_print("Selected books have been reset and can be reprocessed.")
+        self.update_estimated_time()  # Update the estimated time after resetting
         
     def model_selected(self, event):
         # update the max tokens slider max value based on the selected model max tokens setting
@@ -616,6 +658,10 @@ class BookSummarizerGUI:
         current_requests = (
             self.daily_requests.get(today, {}).get(provider, {}).get(model, 0)
         )
+
+        # Add one more request if tag generation is enabled
+        if self.generate_tags_var.get():
+            additional_requests += 1
 
         if (current_requests + additional_requests) > daily_limit:
             self.console_print(
@@ -999,6 +1045,18 @@ class BookSummarizerGUI:
             total_estimated_time_seconds += estimated_time_final_summaries
             total_estimated_cost_value += estimated_cost_final_summaries
 
+        # Add the tags time and cost if tag generation is enabled
+        if self.generate_tags_var.get():
+            estimated_time_tags = self.estimate_processing_time(
+                1250, model, provider
+            )
+            estimated_cost_tags = self.calculate_estimated_cost(
+                1250, model, provider
+            )
+
+            total_estimated_time_seconds += estimated_time_tags
+            total_estimated_cost_value += estimated_cost_tags
+
         # Convert seconds to readable time and cost to readable format
         total_estimated_time = seconds_to_time(total_estimated_time_seconds)
         total_estimated_cost = float_to_cost(total_estimated_cost_value)
@@ -1009,6 +1067,9 @@ class BookSummarizerGUI:
         # Update the UI with estimated values
         self.estimated_time_label.grid()
         estimated_requests = chunk_summary_info["total_chunks"] + final_summaries
+        if self.generate_tags_var.get():
+            estimated_requests += 1  # Add one request for tags
+
         self.estimated_time_label.config(
             text=f"Estimated requests: {estimated_requests} / {available_requests} | {total_estimated_time if estimated_requests > 0 else 'N/A'} | {total_estimated_cost if estimated_requests > 0 else 'N/A'}"
         )
@@ -1248,6 +1309,10 @@ class BookSummarizerGUI:
             book_dir = os.path.join(f".{os.sep}summaries", f"{title} - {author}")
             os.makedirs(book_dir, exist_ok=True)
 
+            total_steps = len(chunks) + 1  # +1 for final summary
+            if self.generate_tags_var.get():
+                total_steps += 1  # +1 for tags generation
+
             def progress_callback(step_number, total_steps):
                 percent_complete = (step_number / total_steps) * 100
                 self.processing_queue.put(
@@ -1266,11 +1331,18 @@ class BookSummarizerGUI:
                             f"Processed chunk {step_number}/{len(chunks)} of {title}...",
                         )
                     )
-                else:
+                elif step_number == len(chunks) + 1:
                     self.processing_queue.put(
                         (
                             "console_print",
                             f"Creating final summary for {title}...",
+                        )
+                    )
+                else:
+                    self.processing_queue.put(
+                        (
+                            "console_print",
+                            f"Generating tags for {title}...",
                         )
                     )
                 self.update_daily_requests(manager.model, provider, 1)
@@ -1287,6 +1359,7 @@ class BookSummarizerGUI:
                     manager.model, provider, 1
                 )  # +1 for final summary
 
+            # Save the final summary
             summary_path = os.path.join(
                 book_dir, f"{title} - {author} - Full Summary.txt"
             )
@@ -1296,6 +1369,25 @@ class BookSummarizerGUI:
                 summary_file.write(f"Series: {series}\n")
                 summary_file.write(f"Series Index: {series_index}\n\n")
                 summary_file.write(summary)
+
+            # Generate and save tags if the checkbox is checked
+            if self.generate_tags_var.get():
+                tags = manager.generate_tags(summary)
+                if tags:
+                    tags_filename = f"{title} - {author} - Tags.txt"
+                    tags_path = os.path.join(book_dir, tags_filename)
+                    with open(tags_path, "w", encoding="utf-8") as tags_file:
+                        tags_file.write(f"Title: {title}\n")
+                        tags_file.write(f"Author: {author}\n\n")
+                        tags_file.write("Tags:\n")
+                        tags_file.write(", ".join(tags))
+                    self.processing_queue.put(
+                        (
+                            "console_print",
+                            f"Tags saved to {tags_path}.",
+                        )
+                    )
+                self.update_daily_requests(manager.model, provider, 1)  # +1 for tags
 
             self.processed_books.add(book_path)
             base_name = os.path.splitext(os.path.basename(book_path))[0]
@@ -1315,7 +1407,7 @@ class BookSummarizerGUI:
             self.processing_queue.put(("update_chunk_progress", (item, "Aborted")))
 
         finally:
-            time.sleep(0.5) # to account for queue delay
+            time.sleep(0.5)  # to account for queue delay
             self.update_estimated_time()
 
     def get_item_from_book_path(self, book_path):
@@ -1425,8 +1517,12 @@ class BookSummarizerGUI:
             self.file_listbox.set(item, "chunk_progress", "Aborted")
         else:
             progress_int = int(progress)
-            filled_length = round(progress_int / 5)
-            bar = "█" * filled_length + "▒" * (20 - filled_length)
+            # Calculate filled length proportional to 24 characters
+            filled_length = round(progress_int * 24 / 100)
+            # Ensure the bar doesn't exceed 24 characters
+            filled_length = min(filled_length, 24)
+            # Create the progress bar
+            bar = "█" * filled_length + "▒" * (24 - filled_length)
             progress_text = f"{bar} {progress_int:3d}%"
             self.file_listbox.set(item, "chunk_progress", progress_text)
 
@@ -1476,6 +1572,7 @@ class BookSummarizerGUI:
         self.process_button.config(state=tk.DISABLED)
         self.temperature_slider.config(state=tk.DISABLED)
         self.tokens_slider.config(state=tk.DISABLED)
+        self.generate_tags_checkbox.config(state=tk.DISABLED)
         self.remove_selected_button.config(state=tk.DISABLED)
         self.clear_console_button.config(state=tk.DISABLED)
 
@@ -1484,6 +1581,7 @@ class BookSummarizerGUI:
         self.model_combobox.config(state=tk.NORMAL)
         self.temperature_slider.config(state=tk.NORMAL)
         self.tokens_slider.config(state=tk.NORMAL)
+        self.generate_tags_checkbox.config(state=tk.NORMAL)
         self.process_button.config(state=tk.NORMAL)
         self.remove_selected_button.config(state=tk.NORMAL)
         self.clear_console_button.config(state=tk.NORMAL)
