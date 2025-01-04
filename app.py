@@ -1379,6 +1379,8 @@ class BookSummarizerGUI:
                     with open(tags_path, "w", encoding="utf-8") as tags_file:
                         tags_file.write(f"Title: {title}\n")
                         tags_file.write(f"Author: {author}\n\n")
+                        tags_file.write(f"Series: {series}\n")
+                        tags_file.write(f"Series Index: {series_index}\n\n")
                         tags_file.write("Tags:\n")
                         tags_file.write(", ".join(tags))
                     self.processing_queue.put(
