@@ -127,10 +127,11 @@ class BaseManager:
             try:
                 response = self._generate_response(prompt)
                 tags = [tag.strip() for tag in response.split(",")]
-                if len(tags) == 20:
+                # there is a tolerance of 5 tags  
+                if len(tags) >= 15 and len(tags) <= 25:
                     return tags
                 else:
-                    logging.error(f"Generated {len(tags)} tags instead of 20. Retrying...")
+                    logging.error(f"Generated {len(tags)} tags instead of 15-25. Retrying...")
             except Exception as e:
                 logging.error(f"Error during tag generation (attempt {attempt + 1}): {e}")
                 if attempt < self.retries - 1:

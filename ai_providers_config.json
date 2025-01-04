@@ -80,6 +80,13 @@
                     "output_speed": 27,
                     "latency_per_10k": 2.5,
                     "cost_per_million": 0.4
+                },
+                {
+                    "name": "deepseek-ai/DeepSeek-V3",
+                    "max_tokens": 131072,
+                    "output_speed": 27,
+                    "latency_per_10k": 2.5,
+                    "cost_per_million": 0.25
                 }
             ]
         },
@@ -235,6 +242,13 @@
                 {
                     "name": "claude-3.5-sonnet",
                     "max_tokens": 200000,
+                    "output_speed": 20,
+                    "latency_per_10k": 2,
+                    "cost_per_million": 0
+                },
+                {
+                    "name": "deepseek-chat",
+                    "max_tokens": 64000,
                     "output_speed": 20,
                     "latency_per_10k": 2,
                     "cost_per_million": 0

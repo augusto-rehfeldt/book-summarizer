@@ -80,6 +80,11 @@ class BookSummarizerGUI:
         self.daily_requests = load_daily_requests()
         self.load_ai_config()
         self.load_api_keys()
+        
+        self.previous_model = None
+        self.previous_provider = None
+        
+        self.preprocessed_books_set = set()
 
         self.master.configure(background="#282c34")
         style = ttk.Style()
@@ -519,13 +524,16 @@ class BookSummarizerGUI:
         self.update_estimated_time()  # Update the estimated time after resetting
         
     def model_selected(self, event):
-        # update the max tokens slider max value based on the selected model max tokens setting
+        # Update the max tokens slider max value based on the selected model max tokens setting
         provider_name = self.provider_var.get()
         model_name = self.model_var.get()
         model_info = self.get_model_info(model_name, provider_name)
-        max_tokens = model_info.get("max_tokens", 32768) # default to 32k
+        max_tokens = model_info.get("max_tokens", 32768)  # default to 32k
         self.tokens_slider.configure(to=max_tokens)
         self.max_tokens_var.set(max_tokens)
+        
+        # Reset preprocessing state when model is changed
+        self.reset_preprocessing_state()
         self.update_estimated_time()
 
     def open_summary_file(self, event):
@@ -757,12 +765,17 @@ class BookSummarizerGUI:
         selected_items = self.file_listbox.selection()
         if selected_items:
             for item in selected_items:
+                base_name = self.file_listbox.item(item)["values"][0]
+                book_path = self.file_paths.get(base_name)
+                if book_path in self.preprocessed_books_set:
+                    self.preprocessed_books_set.remove(book_path)  # Remove from preprocessed set
                 self.file_listbox.delete(item)
         self.update_book_count()
         self.update_estimated_time()
 
     def clear_file_list(self):
         self.file_listbox.delete(*self.file_listbox.get_children())
+        self.preprocessed_books_set.clear()  # Clear the preprocessed set
         self.update_book_count()
         self.update_estimated_time()
 
@@ -812,15 +825,6 @@ class BookSummarizerGUI:
                 return True
         return False
 
-    def update_model_options(self, event):
-        selected_provider = self.provider_var.get()
-        for provider in self.ai_config["providers"]:
-            if provider["name"] == selected_provider:
-                self.model_combobox["values"] = [
-                    model["name"] for model in provider["models"]
-                ]
-                self.model_combobox.set("")
-
     def get_selected_model_info(self) -> Dict[str, Any]:
         selected_provider = self.provider_var.get()
         selected_model = self.model_var.get()
@@ -853,18 +857,14 @@ class BookSummarizerGUI:
         preprocessed_books = {}
         book_chunk_info = {}
 
-        # Load existing processed books cache if it exists
-        processed_books_cache = {}
-        cache_file = 'processed_books_cache.json'
-        if os.path.exists(cache_file):
-            with open(cache_file, 'r') as f:
-                processed_books_cache = json.load(f)
-
         for item in self.file_listbox.get_children():
             if self.file_listbox.item(item)["values"][1] != "Aborted" and self.file_listbox.item(item)["values"][2] == "":
                 base_name = self.file_listbox.item(item)["values"][0]
                 book_path = self.file_paths.get(base_name)
                 
+                if book_path in self.preprocessed_books_set:
+                    continue  # Skip already preprocessed books
+
                 content = read_epub(book_path)
                 if content:
                     total_tokens = int(len(content.split()) * 1.3)
@@ -934,6 +934,7 @@ class BookSummarizerGUI:
 
                     preprocessed_books[book_path] = chunks
                     book_chunk_info[book_path] = chunk_info
+                    self.preprocessed_books_set.add(book_path)  # Add to preprocessed set
 
         self.book_chunk_info = book_chunk_info
         return preprocessed_books
@@ -1076,7 +1077,6 @@ class BookSummarizerGUI:
 
 
     def start_processing(self):
-
         self.process_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
         self.disable_widgets()
@@ -1095,6 +1095,10 @@ class BookSummarizerGUI:
             self.console_print("Error: Please select an AI provider and model.")
             self.enable_widgets()
             return False
+
+        # Only reset preprocessing state if no books have been preprocessed
+        if len(self.preprocessed_books) == 0:
+            self.preprocessed_books = self.preprocess_books(selected_model_info["max_tokens"], selected_model_info.get("tpm", float("inf")))
 
         if len(self.preprocessed_books) == 0:
             self.console_print(
@@ -1128,6 +1132,50 @@ class BookSummarizerGUI:
             daemon=True,
         )
         self.start_processing_thread.start()
+
+    def update_model_options(self, event):
+        selected_provider = self.provider_var.get()
+        selected_model = self.model_var.get()
+
+        # Only proceed if a provider is selected
+        if selected_provider:
+            # Update the model combobox with the new provider's models
+            for provider in self.ai_config["providers"]:
+                if provider["name"] == selected_provider:
+                    self.model_combobox["values"] = [
+                        model["name"] for model in provider["models"]
+                    ]
+                    # Set the selected model if it exists in the new provider's models
+                    if selected_model in self.model_combobox["values"]:
+                        self.model_combobox.set(selected_model)
+                    else:
+                        self.model_combobox.set("")  # Clear the selection if the model is not available
+
+            # Check if the model or provider has changed
+            if selected_model != self.previous_model or selected_provider != self.previous_provider:
+                if selected_model:  # Only proceed if a model is selected
+                    # Stop any ongoing preprocessing
+                    if self.start_processing_thread and self.start_processing_thread.is_alive():
+                        self.start_processing_thread.kill()
+                        self.console_print("Preprocessing stopped due to model/provider change.")
+
+                    # Reset preprocessing state
+                    self.reset_preprocessing_state()
+                    self.update_estimated_time()
+
+            # Update the previous model and provider
+            if selected_model and selected_provider:
+                self.previous_model = selected_model
+                self.previous_provider = selected_provider
+
+    def reset_preprocessing_state(self):
+        self.preprocessed_books = {}
+        self.preprocessed_books_set.clear()
+        self.book_chunk_info = {}
+        self.processed_books.clear()
+        self.aborted_books.clear()
+        self.processed_basenames.clear()
+        self.console_print("Preprocessing state reset.")
 
     def _start_processing_thread(self, preprocessed_books, selected_model_info):
         model = selected_model_info["name"]
@@ -1378,7 +1426,7 @@ class BookSummarizerGUI:
                     tags_path = os.path.join(book_dir, tags_filename)
                     with open(tags_path, "w", encoding="utf-8") as tags_file:
                         tags_file.write(f"Title: {title}\n")
-                        tags_file.write(f"Author: {author}\n\n")
+                        tags_file.write(f"Author: {author}\n")
                         tags_file.write(f"Series: {series}\n")
                         tags_file.write(f"Series Index: {series_index}\n\n")
                         tags_file.write("Tags:\n")
@@ -1387,6 +1435,13 @@ class BookSummarizerGUI:
                         (
                             "console_print",
                             f"Tags saved to {tags_path}.",
+                        )
+                    )
+                else:
+                    self.processing_queue.put(
+                        (
+                            "console_print",
+                            f"Failed to generate tags for {title}.",
                         )
                     )
                 self.update_daily_requests(manager.model, provider, 1)  # +1 for tags
